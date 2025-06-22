@@ -4,48 +4,97 @@
   <meta charset="UTF-8" />
   <title>Kick Chat Messages</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; }
-    #messages { list-style: none; padding: 0; }
-    #messages li { padding: 8px; border-bottom: 1px solid #ccc; }
-    #messages li strong { color: #0077cc; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      position: relative;
+      padding-top: 40px;
+    }
+    #live-status {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #222;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 1000;
+    }
+    #messages {
+      list-style: none;
+      padding: 0;
+    }
+    #messages li {
+      padding: 8px;
+      border-bottom: 1px solid #ccc;
+    }
+    #messages li strong {
+      color: #0077cc;
+    }
   </style>
 </head>
 <body>
+  <div id="live-status">Loading status...</div>
   <h1>Kick Chat Messages (public)</h1>
- <ul id="messages"></ul>
+  <ul id="messages"></ul>
 
-<script>
-  async function fetchMessages() {
-    try {
-      const res = await fetch("/messages");
-      if (!res.ok) throw new Error("Failed to fetch messages");
-      const json = await res.json();
+  <script>
+    async function fetchMessages() {
+      try {
+        const res = await fetch("/messages");
+        if (!res.ok) throw new Error("Failed to fetch messages");
+        const json = await res.json();
 
-      const messagesList = document.getElementById("messages");
-      messagesList.innerHTML = "";
+        const messagesList = document.getElementById("messages");
+        messagesList.innerHTML = "";
 
-      // Extract messages array from the nested data object
-      const messages = json.data?.messages || [];
+        const messages = json.data?.messages || [];
 
-      if (messages.length === 0) {
-        messagesList.textContent = "No messages available.";
-        return;
+        if (messages.length === 0) {
+          messagesList.textContent = "No messages available.";
+          return;
+        }
+
+        messages.forEach(msg => {
+          const li = document.createElement("li");
+          const time = new Date(msg.created_at || Date.now()).toLocaleTimeString();
+          li.innerHTML = `<strong>User ID ${msg.user_id}</strong> [${time}]: ${msg.content || ""}`;
+          messagesList.appendChild(li);
+        });
+      } catch (e) {
+        console.error(e);
+        document.getElementById("messages").textContent = "Error loading messages.";
       }
-
-      messages.forEach(msg => {
-        const li = document.createElement("li");
-        const time = new Date(msg.created_at || Date.now()).toLocaleTimeString();
-        li.innerHTML = `<strong>User ID ${msg.user_id}</strong> [${time}]: ${msg.content || ""}`;
-        messagesList.appendChild(li);
-      });
-    } catch (e) {
-      console.error(e);
-      document.getElementById("messages").textContent = "Error loading messages.";
     }
-  }
 
-  setInterval(fetchMessages, 5000);
-  fetchMessages();
-</script>
+    async function fetchLiveStatus() {
+      try {
+        const res = await fetch("/channel-status");
+        if (!res.ok) throw new Error("Failed to fetch live status");
+        const json = await res.json();
+
+        const liveStatusDiv = document.getElementById("live-status");
+        if (json.is_live) {
+          liveStatusDiv.textContent = `🔴 LIVE — ${json.channel_name}`;
+          liveStatusDiv.style.backgroundColor = "#d32f2f";
+        } else {
+          liveStatusDiv.textContent = `⚪ Offline — ${json.channel_name}`;
+          liveStatusDiv.style.backgroundColor = "#555";
+        }
+      } catch (e) {
+        console.error(e);
+        document.getElementById("live-status").textContent = "Status unavailable";
+      }
+    }
+
+    setInterval(fetchMessages, 5000);
+    setInterval(fetchLiveStatus, 10000);
+
+    fetchMessages();
+    fetchLiveStatus();
+  </script>
 </body>
 </html>
