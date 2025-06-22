@@ -1,7 +1,7 @@
 {
   "name": "kick-webhook-listener",
   "version": "1.0.0",
-  "description": "A minimal Kick webhook listener for Render",
+  "description": "Kick chat webhook listener with live message display",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
