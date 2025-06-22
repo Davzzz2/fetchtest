@@ -11,8 +11,7 @@
   </style>
 </head>
 <body>
-  <h1>Kick Chat Messages</h1>
-  <p><a href="/login">Login with Kick to authorize webhook subscription</a></p>
+  <h1>Kick Chat Messages (public)</h1>
   <ul id="messages"></ul>
 
   <script>
@@ -20,23 +19,29 @@
       try {
         const res = await fetch("/messages");
         if (!res.ok) throw new Error("Failed to fetch messages");
+        const data = await res.json();
 
-        const messages = await res.json();
         const messagesList = document.getElementById("messages");
         messagesList.innerHTML = "";
 
-        messages.forEach(msg => {
-          const li = document.createElement("li");
-          const time = new Date(msg.timestamp).toLocaleTimeString();
-          li.innerHTML = `<strong>${msg.user}</strong> [${time}]: ${msg.message}`;
-          messagesList.appendChild(li);
-        });
+        // Kick's API response has a "messages" array
+        if (data.messages && Array.isArray(data.messages)) {
+          data.messages.forEach(msg => {
+            const li = document.createElement("li");
+            const time = new Date(msg.created_at).toLocaleTimeString();
+            li.innerHTML = `<strong>${msg.user?.username || "Unknown"}</strong> [${time}]: ${msg.message || ""}`;
+            messagesList.appendChild(li);
+          });
+        } else {
+          messagesList.textContent = "No messages found or invalid response.";
+        }
       } catch (e) {
         console.error(e);
+        document.getElementById("messages").textContent = "Error loading messages.";
       }
     }
 
-    setInterval(fetchMessages, 3000);
+    setInterval(fetchMessages, 5000);
     fetchMessages();
   </script>
 </body>
