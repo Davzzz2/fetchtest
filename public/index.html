@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kick Chat Messages</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; }
+    #messages { list-style: none; padding: 0; }
+    #messages li { padding: 8px; border-bottom: 1px solid #ccc; }
+    #messages li strong { color: #0077cc; }
+  </style>
+</head>
+<body>
+  <h1>Kick Chat Messages</h1>
+  <ul id="messages"></ul>
+
+  <script>
+    async function fetchMessages() {
+      try {
+        const res = await fetch("/messages");
+        if (!res.ok) throw new Error("Failed to fetch messages");
+
+        const messages = await res.json();
+        const messagesList = document.getElementById("messages");
+        messagesList.innerHTML = "";
+
+        messages.forEach(msg => {
+          const li = document.createElement("li");
+          const time = new Date(msg.timestamp).toLocaleTimeString();
+          li.innerHTML = `<strong>${msg.user}</strong> [${time}]: ${msg.message}`;
+          messagesList.appendChild(li);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Poll every 3 seconds
+    setInterval(fetchMessages, 3000);
+    fetchMessages(); // initial load
+  </script>
+</body>
+</html>
