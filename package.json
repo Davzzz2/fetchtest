@@ -1,7 +1,7 @@
 {
   "name": "kick-backend",
   "version": "1.0.0",
-  "description": "Backend for Kick message fetcher",
+  "description": "Backend to fetch Kick messages",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
