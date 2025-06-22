@@ -12,6 +12,7 @@
 </head>
 <body>
   <h1>Kick Chat Messages</h1>
+  <p><a href="/login">Login with Kick to authorize webhook subscription</a></p>
   <ul id="messages"></ul>
 
   <script>
@@ -35,9 +36,8 @@
       }
     }
 
-    // Poll every 3 seconds
     setInterval(fetchMessages, 3000);
-    fetchMessages(); // initial load
+    fetchMessages();
   </script>
 </body>
 </html>
