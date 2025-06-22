@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // Example channel ID - replace with any Kick channel ID you want
-const CHANNEL_ID = "1485854";
+const CHANNEL_ID = "1154053";
 
 // Fetch messages from Kick public API and proxy to client
 app.get("/messages", async (req, res) => {
