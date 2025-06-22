@@ -1,13 +1,12 @@
 {
-  "name": "kick-backend",
+  "name": "kick-webhook-listener",
   "version": "1.0.0",
-  "description": "Backend to fetch Kick messages",
+  "description": "A minimal Kick webhook listener for Render",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "node-fetch": "^2.6.7"
+    "express": "^4.18.2"
   }
 }
