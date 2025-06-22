@@ -12,37 +12,40 @@
 </head>
 <body>
   <h1>Kick Chat Messages (public)</h1>
-  <ul id="messages"></ul>
+ <ul id="messages"></ul>
 
-  <script>
-    async function fetchMessages() {
-      try {
-        const res = await fetch("/messages");
-        if (!res.ok) throw new Error("Failed to fetch messages");
-        const data = await res.json();
+<script>
+  async function fetchMessages() {
+    try {
+      const res = await fetch("/messages");
+      if (!res.ok) throw new Error("Failed to fetch messages");
+      const json = await res.json();
 
-        const messagesList = document.getElementById("messages");
-        messagesList.innerHTML = "";
+      const messagesList = document.getElementById("messages");
+      messagesList.innerHTML = "";
 
-        // Kick's API response has a "messages" array
-        if (data.messages && Array.isArray(data.messages)) {
-          data.messages.forEach(msg => {
-            const li = document.createElement("li");
-            const time = new Date(msg.created_at).toLocaleTimeString();
-            li.innerHTML = `<strong>${msg.user?.username || "Unknown"}</strong> [${time}]: ${msg.message || ""}`;
-            messagesList.appendChild(li);
-          });
-        } else {
-          messagesList.textContent = "No messages found or invalid response.";
-        }
-      } catch (e) {
-        console.error(e);
-        document.getElementById("messages").textContent = "Error loading messages.";
+      // Extract messages array from the nested data object
+      const messages = json.data?.messages || [];
+
+      if (messages.length === 0) {
+        messagesList.textContent = "No messages available.";
+        return;
       }
-    }
 
-    setInterval(fetchMessages, 5000);
-    fetchMessages();
-  </script>
+      messages.forEach(msg => {
+        const li = document.createElement("li");
+        const time = new Date(msg.created_at || Date.now()).toLocaleTimeString();
+        li.innerHTML = `<strong>User ID ${msg.user_id}</strong> [${time}]: ${msg.content || ""}`;
+        messagesList.appendChild(li);
+      });
+    } catch (e) {
+      console.error(e);
+      document.getElementById("messages").textContent = "Error loading messages.";
+    }
+  }
+
+  setInterval(fetchMessages, 5000);
+  fetchMessages();
+</script>
 </body>
 </html>
