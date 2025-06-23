@@ -26,6 +26,312 @@
       overflow-x: hidden;
     }
 
+    /* Timer styles */
+    .timer-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 15px 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .timer-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e0e7ff;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .timer-display {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #ffffff;
+      font-family: 'Courier New', monospace;
+    }
+
+    .timer-warning {
+      color: #fbbf24;
+      animation: pulse 2s infinite;
+    }
+
+    .timer-critical {
+      color: #ef4444;
+      animation: pulse 1s infinite;
+    }
+
+    /* Roll system styles */
+    .roll-container {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      min-width: 280px;
+      max-width: 320px;
+    }
+
+    .roll-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 15px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .roll-timer {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #10b981;
+      font-family: 'Courier New', monospace;
+      text-align: center;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .roll-winner {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+
+    .roll-winner-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #3b82f6;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .roll-winner-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 5px;
+    }
+
+    .roll-winner-prize {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #10b981;
+    }
+
+    .roll-hash {
+      font-size: 0.7rem;
+      color: #9ca3af;
+      word-break: break-all;
+      margin-top: 10px;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+
+    /* Verification modal styles */
+    .verification-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.5);
+      color: #3b82f6;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .verification-btn:hover {
+      background: rgba(59, 130, 246, 0.3);
+      transform: scale(1.1);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 5px;
+      border-radius: 5px;
+      transition: all 0.3s ease;
+    }
+
+    .modal-close:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .verification-section {
+      margin-bottom: 25px;
+    }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e0e7ff;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .verification-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      color: #ffffff;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .verification-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .verify-btn {
+      background: linear-gradient(45deg, #3b82f6, #1d4ed8);
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      color: #ffffff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 20px;
+    }
+
+    .verify-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    .verify-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .result-section {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 15px;
+    }
+
+    .result-item {
+      margin-bottom: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9rem;
+    }
+
+    .result-label {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .result-value {
+      color: #ffffff;
+      word-break: break-all;
+    }
+
+    .current-seed-section {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .seed-display {
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      color: #3b82f6;
+      word-break: break-all;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
     /* Animated background particles */
     body::before {
       content: '';
@@ -49,7 +355,7 @@
     }
 
     /* New live status style */
-    //#live-status {
+    #live-status {
       font-weight: 700;
       font-size: 1.3rem;
       margin-bottom: 12px;
@@ -61,12 +367,12 @@
       user-select: none;
       transition: background-color 0.3s ease;
     }
-    //#live-status.live {
+    #live-status.live {
       background-color: #16a34a; /* green */
       color: #d1fae5;
       box-shadow: 0 0 15px #22c55e;
     }
-    //#live-status.offline {
+    #live-status.offline {
       background-color: #9ca3af; /* gray */
       color: #f3f4f6;
       box-shadow: none;
@@ -286,6 +592,53 @@
         min-width: 60px;
         font-size: 0.9rem;
       }
+
+      .timer-container {
+        top: 10px;
+        right: 10px;
+        padding: 10px 15px;
+        min-width: 150px;
+      }
+
+      .timer-title {
+        font-size: 0.8rem;
+      }
+
+      .timer-display {
+        font-size: 1rem;
+      }
+
+      .roll-container {
+        top: 10px;
+        left: 10px;
+        padding: 15px;
+        min-width: 200px;
+        max-width: 250px;
+      }
+
+      .roll-title {
+        font-size: 1rem;
+        margin-bottom: 10px;
+      }
+
+      .roll-timer {
+        font-size: 1.1rem;
+        padding: 8px;
+        margin-bottom: 10px;
+      }
+
+      .roll-winner {
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+
+      .roll-winner-name {
+        font-size: 1.1rem;
+      }
+
+      .roll-winner-prize {
+        font-size: 1rem;
+      }
     }
 
     @media (max-width: 480px) {
@@ -311,10 +664,129 @@
         min-width: 50px;
         font-size: 0.8rem;
       }
+
+      .timer-container {
+        top: 5px;
+        right: 5px;
+        padding: 8px 12px;
+        min-width: 120px;
+      }
+
+      .timer-title {
+        font-size: 0.7rem;
+        margin-bottom: 5px;
+      }
+
+      .timer-display {
+        font-size: 0.9rem;
+      }
+
+      .roll-container {
+        top: 5px;
+        left: 5px;
+        padding: 10px;
+        min-width: 150px;
+        max-width: 200px;
+      }
+
+      .roll-title {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+      }
+
+      .roll-timer {
+        font-size: 1rem;
+        padding: 6px;
+        margin-bottom: 8px;
+      }
+
+      .roll-winner {
+        padding: 10px;
+        margin-bottom: 6px;
+      }
+
+      .roll-winner-title {
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+      }
+
+      .roll-winner-name {
+        font-size: 1rem;
+        margin-bottom: 4px;
+      }
+
+      .roll-winner-prize {
+        font-size: 0.9rem;
+      }
+
+      .roll-hash {
+        font-size: 0.6rem;
+        padding: 6px;
+        margin-top: 8px;
+      }
+
+      .verification-btn {
+        width: 18px;
+        height: 18px;
+        font-size: 11px;
+        top: 6px;
+        right: 6px;
+      }
+
+      .modal-content {
+        padding: 15px;
+        max-width: 98%;
+      }
+
+      .modal-title {
+        font-size: 1.2rem;
+      }
+
+      .section-title {
+        font-size: 1rem;
+      }
+
+      .verification-input {
+        padding: 8px;
+        font-size: 0.75rem;
+      }
+
+      .verify-btn {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+      }
+
+      .result-item {
+        font-size: 0.8rem;
+      }
+
+      .seed-display {
+        font-size: 0.7rem;
+        padding: 6px;
+      }
     }
   </style>
 </head>
 <body>
+  <!-- Timer in top right corner -->
+  <div class="timer-container">
+    <div class="timer-title">Next Reset</div>
+    <div class="timer-display" id="timer">Loading...</div>
+  </div>
+
+  <!-- Roll system in top left corner -->
+  <div class="roll-container">
+    <div class="roll-title">🎲 Weekly Roll</div>
+    <div class="roll-timer" id="roll-timer">Loading...</div>
+    <div id="roll-winner" style="display: none;">
+      <div class="roll-winner">
+        <div class="roll-winner-title">Latest Winner</div>
+        <div class="roll-winner-name" id="winner-name">-</div>
+        <div class="roll-winner-prize" id="winner-prize">-</div>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
 
     <h1><img src="trophy.png" alt="Trophy" class="trophy-icon">Kick Chat Leaderboard</h1>
@@ -353,6 +825,140 @@
       return true;
     }
 
+    // Timer functions
+    async function updateTimer() {
+      try {
+        const res = await fetch("/timer");
+        const data = await res.json();
+        const timerEl = document.getElementById("timer");
+        
+        if (data.timeLeft <= 0) {
+          timerEl.textContent = "RESETTING...";
+          timerEl.className = "timer-display timer-critical";
+          return;
+        }
+        
+        const days = data.days;
+        const hours = data.hours.toString().padStart(2, '0');
+        const minutes = data.minutes.toString().padStart(2, '0');
+        const seconds = data.seconds.toString().padStart(2, '0');
+        
+        timerEl.textContent = `${days}d ${hours}:${minutes}:${seconds}`;
+        
+        // Add warning colors based on time remaining
+        timerEl.className = "timer-display";
+        if (days === 0 && hours < 1) {
+          timerEl.classList.add("timer-critical");
+        } else if (days === 0 && hours < 6) {
+          timerEl.classList.add("timer-warning");
+        }
+      } catch (e) {
+        console.error("Failed to update timer:", e);
+        document.getElementById("timer").textContent = "Error";
+      }
+    }
+
+    // Roll system functions
+    async function updateRollSystem() {
+      try {
+        const res = await fetch("/roll-info");
+        const data = await res.json();
+        
+        const rollTimerEl = document.getElementById("roll-timer");
+        const rollWinnerEl = document.getElementById("roll-winner");
+        const winnerNameEl = document.getElementById("winner-name");
+        const winnerPrizeEl = document.getElementById("winner-prize");
+        
+        // Update roll timer (same as leaderboard timer)
+        if (data.timeUntilRoll > 0) {
+          const days = Math.floor(data.timeUntilRoll / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((data.timeUntilRoll % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((data.timeUntilRoll % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((data.timeUntilRoll % (1000 * 60)) / 1000);
+          
+          let timerText = `Next Roll: `;
+          if (days > 0) {
+            timerText += `${days}d ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          } else {
+            timerText += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          }
+          
+          rollTimerEl.textContent = timerText;
+        } else {
+          rollTimerEl.textContent = "Rolling...";
+        }
+        
+        // Show latest winner if available (stays until next roll)
+        if (data.latestRoll) {
+          winnerNameEl.textContent = data.latestRoll.winner;
+          winnerPrizeEl.textContent = `$${data.latestRoll.prize.toFixed(2)}`;
+          rollWinnerEl.style.display = "block";
+        }
+      } catch (e) {
+        console.error("Failed to update roll system:", e);
+        document.getElementById("roll-timer").textContent = "Error";
+      }
+    }
+
+    // Verification modal functions
+    async function openVerificationModal() {
+      const modal = document.getElementById("verificationModal");
+      modal.style.display = "flex";
+      
+      // Load current server seed
+      try {
+        const res = await fetch("/current-seed");
+        const data = await res.json();
+        document.getElementById("currentSeed").textContent = data.serverSeed;
+      } catch (e) {
+        document.getElementById("currentSeed").textContent = "Error loading seed";
+      }
+    }
+
+    function closeVerificationModal() {
+      const modal = document.getElementById("verificationModal");
+      modal.style.display = "none";
+      document.getElementById("verificationResult").style.display = "none";
+    }
+
+    async function verifyRoll() {
+      const serverSeed = document.getElementById("serverSeedInput").value.trim();
+      const clientSeed = document.getElementById("clientSeedInput").value.trim();
+      const nonce = document.getElementById("nonceInput").value.trim();
+      
+      if (!serverSeed || !clientSeed || !nonce) {
+        alert("Please fill in all fields");
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/verify-roll?serverSeed=${encodeURIComponent(serverSeed)}&clientSeed=${encodeURIComponent(clientSeed)}&nonce=${encodeURIComponent(nonce)}`);
+        const data = await res.json();
+        
+        if (data.error) {
+          alert("Error: " + data.error);
+          return;
+        }
+        
+        // Display results
+        document.getElementById("combinedResult").textContent = data.combined;
+        document.getElementById("hashResult").textContent = data.hash;
+        document.getElementById("rollResult").textContent = data.rollResult.toFixed(8);
+        document.getElementById("verificationResult").style.display = "block";
+        
+      } catch (e) {
+        alert("Error verifying roll: " + e.message);
+      }
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener('click', function(event) {
+      const modal = document.getElementById("verificationModal");
+      if (event.target === modal) {
+        closeVerificationModal();
+      }
+    });
+
     async function loadLeaderboard() {
       try {
         const res = await fetch("/leaderboard");
@@ -364,8 +970,8 @@
         const isFirstLoad = tbody.children.length === 1 && tbody.children[0].querySelector('.loading');
         tbody.innerHTML = "";
 
-        // Prize distribution for top 5 ranks (total $20)
-        const prizes = [8, 5, 3.5, 2, 1.5];
+        // Updated prize distribution for top 5 ranks (total $25)
+        const prizes = [10, 6, 4, 3, 2];
         data.forEach((entry, index) => {
           const row = document.createElement("tr");
           if (isFirstLoad) {
@@ -413,8 +1019,12 @@
     // Initial load and set intervals
     loadLeaderboard();
     updateLiveStatus();
+    updateTimer();
+    updateRollSystem();
     setInterval(loadLeaderboard, 1500);    // refresh leaderboard every 1.5s
     setInterval(updateLiveStatus, 1000);   // refresh live status every 1s
+    setInterval(updateTimer, 1000);        // refresh timer every 1s
+    setInterval(updateRollSystem, 1000);    // refresh roll system every 1s
 
   </script>
 
