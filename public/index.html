@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kick Leaderboard</title>
   <style>
+    /* your existing styles here */
     * {
       margin: 0;
       padding: 0;
@@ -45,6 +46,30 @@
       max-width: 1000px;
       margin: 0 auto;
       padding: 20px;
+    }
+
+    /* New live status style */
+    #live-status {
+      font-weight: 700;
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      text-align: center;
+      padding: 6px 12px;
+      border-radius: 12px;
+      display: inline-block;
+      min-width: 120px;
+      user-select: none;
+      transition: background-color 0.3s ease;
+    }
+    #live-status.live {
+      background-color: #16a34a; /* green */
+      color: #d1fae5;
+      box-shadow: 0 0 15px #22c55e;
+    }
+    #live-status.offline {
+      background-color: #9ca3af; /* gray */
+      color: #f3f4f6;
+      box-shadow: none;
     }
 
     h1 {
@@ -291,6 +316,9 @@
 </head>
 <body>
   <div class="container">
+    <!-- Live status text -->
+    <div id="live-status" class="offline">Loading live status...</div>
+
     <h1><img src="trophy.png" alt="Trophy" class="trophy-icon">Kick Chat Leaderboard</h1>
     
     <div class="leaderboard-card">
@@ -345,50 +373,58 @@
           if (isFirstLoad) {
             row.style.animation = `fadeInRow 0.6s ${index * 0.08}s both`;
           }
-          const prize = index < prizes.length ? `$${prizes[index].toFixed(2)}` : '';
-          const rankClass = index < 3 ? `rank-${index + 1}` : '';
-          const prizeClass = index < 5 ? `prize-${index + 1}` : '';
-          
+          const prize = index < prizes.length ? `$${prizes[index].toFixed(2)}` : "";
           row.innerHTML = `
-            <td class="rank ${rankClass}">${index + 1}</td>
+            <td class="rank rank-${index + 1}">${index + 1}</td>
             <td class="username">${entry.username}</td>
-            <td class="message-count">${entry.messageCount.toLocaleString()}</td>
-            <td class="prize ${prizeClass}">${prize}</td>
+            <td class="message-count">${entry.messageCount}</td>
+            <td class="prize prize-${index + 1}">${prize}</td>
           `;
           tbody.appendChild(row);
         });
-      } catch (error) {
-        console.error("Failed to load leaderboard:", error);
-        const tbody = document.querySelector("#leaderboard tbody");
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="4" class="loading">
-              <div class="spinner"></div>
-              Error loading leaderboard. Retrying...
-            </td>
-          </tr>
-        `;
+      } catch (e) {
+        console.error("Failed to load leaderboard:", e);
       }
     }
 
-    // Row fade-in animation
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @keyframes fadeInRow {
-        from { 
-          opacity: 0; 
-          transform: translateY(30px) scale(0.95); 
+    // Live status fetch and update function
+    async function updateLiveStatus() {
+      try {
+        const res = await fetch("/live-status");
+        if (!res.ok) throw new Error("Network response not OK");
+        const data = await res.json();
+        const statusEl = document.getElementById("live-status");
+        if (data.isLive) {
+          statusEl.textContent = "Live Now!";
+          statusEl.classList.remove("offline");
+          statusEl.classList.add("live");
+        } else {
+          statusEl.textContent = "Offline";
+          statusEl.classList.remove("live");
+          statusEl.classList.add("offline");
         }
-        to { 
-          opacity: 1; 
-          transform: translateY(0) scale(1); 
-        }
+      } catch (e) {
+        const statusEl = document.getElementById("live-status");
+        statusEl.textContent = "Status unavailable";
+        statusEl.classList.remove("live");
+        statusEl.classList.add("offline");
+        console.error("Failed to fetch live status:", e);
       }
-    `;
-    document.head.appendChild(style);
+    }
 
+    // Initial load and set intervals
     loadLeaderboard();
-    setInterval(loadLeaderboard, 1000);
+    updateLiveStatus();
+    setInterval(loadLeaderboard, 1500);    // refresh leaderboard every 1.5s
+    setInterval(updateLiveStatus, 1000);   // refresh live status every 1s
+
   </script>
+
+  <style>
+    @keyframes fadeInRow {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </body>
 </html>
