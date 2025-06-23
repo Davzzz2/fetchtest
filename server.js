@@ -42,7 +42,7 @@ app.get("/leaderboard", async (req, res) => {
 // Live status endpoint
 app.get("/live-status", async (req, res) => {
   try {
-    const response = await fetch(`https://kick.com/api/v1/channels/enjayy`);
+    const response = await fetch(`https://kick.com/api/v1/channels/roshtein`);
     if (!response.ok) {
       return res.status(response.status).json({ error: "Failed to fetch live status" });
     }
