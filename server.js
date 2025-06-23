@@ -13,45 +13,60 @@ await mongoose.connect(
   { useNewUrlParser: true, useUnifiedTopology: true }
 );
 
+// Message model
 const messageSchema = new mongoose.Schema({
   username: { type: String, unique: true },
   messageCount: { type: Number, default: 0 }
 });
 const Message = mongoose.model("Message", messageSchema);
 
-let lastMessageId = null;
+// Track the timestamp of the last processed message
+let lastSeenTime = null;
 
+// Filter out pure emotes
 function isValidMessage(content) {
   if (!content) return false;
-  const trimmed = content.trim();
-  if (!trimmed) return false;
-  return !/^\[emote:\d+:[a-zA-Z0-9_]+\]$/.test(trimmed);
+  const t = content.trim();
+  return t && !/^\[emote:\d+:[^\]]+\]$/.test(t);
 }
 
+// Leaderboard endpoint
 app.get("/leaderboard", async (req, res) => {
-  const docs = await Message.find().sort({ messageCount: -1 }).limit(100).lean();
+  const docs = await Message.find()
+    .sort({ messageCount: -1 })
+    .limit(100)
+    .lean();
   res.json(docs.map(d => ({ username: d.username, messageCount: d.messageCount })));
 });
 
+// Polling loop
 async function pollKickMessages() {
   try {
     const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages`;
-    const response = await fetch(url, {
+    const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" }
     });
-    if (!response.ok) return console.error("Fetch failed", await response.text());
+    if (!resp.ok) {
+      console.error("Fetch failed", await resp.text());
+      return;
+    }
 
-    const json = await response.json();
-    const messages = (json.data?.messages || []).sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
-    );
+    const json = await resp.json();
+    const messages = (json.data?.messages || [])
+      .map(m => ({
+        ...m,
+        time: new Date(m.created_at)
+      }))
+      .sort((a, b) => a.time - b.time);
 
     for (const msg of messages) {
-      if (lastMessageId && msg.id <= lastMessageId) continue;
+      // Skip anything at or before lastSeenTime
+      if (lastSeenTime && msg.time <= lastSeenTime) continue;
 
-      // **Always advance first**
-      lastMessageId = msg.id;
+      // Update lastSeenTime immediately
+      lastSeenTime = msg.time;
 
+      // Filter and count
       if (!isValidMessage(msg.content)) continue;
 
       const username = msg.sender?.username;
@@ -63,32 +78,37 @@ async function pollKickMessages() {
         { upsert: true }
       );
     }
-  } catch (err) {
-    console.error("Error polling messages:", err);
+  } catch (e) {
+    console.error("Error in pollKickMessages:", e);
   }
 }
 
-// Initial bootstrap: set lastMessageId to the very latest so old messages aren’t counted
+// Bootstrap lastSeenTime without counting old messages
 (async () => {
   try {
-    const init = await fetch(
+    const resp = await fetch(
       `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages`,
       { headers: { "User-Agent": "Mozilla/5.0" } }
     );
-    const js = await init.json();
-    const arr = (js.data?.messages || []).sort(
-      (a, b) => new Date(a.created_at) - new Date(b.created_at)
-    );
-    if (arr.length) lastMessageId = arr[arr.length - 1].id;
-  } catch {}
+    const json = await resp.json();
+    const msgs = json.data?.messages || [];
+    if (msgs.length) {
+      // Find latest created_at
+      lastSeenTime = msgs
+        .map(m => new Date(m.created_at))
+        .reduce((max, cur) => (cur > max ? cur : max), new Date(0));
+    }
+  } catch (_) {}
   setInterval(pollKickMessages, 1000);
 })();
 
+// Weekly reset
 cron.schedule("0 0 */7 * *", async () => {
   await Message.deleteMany({});
-  lastMessageId = null;
-  console.log("Reset leaderboard after 7 days");
+  lastSeenTime = null;
+  console.log("Leaderboard reset after 7 days");
 });
 
+// Serve frontend
 app.use(express.static("public"));
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server on port ${PORT}`));
