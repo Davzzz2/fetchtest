@@ -26,6 +26,9 @@ let lastSeenMessageId = null;
 // Track user message history for spam detection
 const userLastMessages = new Map();
 
+// List of bot usernames to ignore
+const IGNORED_USERS = ["BotRix", "KickBot"];
+
 function isSpamMessage(username, content, timestamp) {
   const trimmed = content.trim();
   if (!trimmed) return true;
@@ -46,17 +49,11 @@ function isSpamMessage(username, content, timestamp) {
   // Check against user's last message
   const last = userLastMessages.get(username);
   if (last) {
-    // Repeated message
     if (last.content === trimmed) return true;
-
-    // Very similar message (copy-paste variant)
-    if (last.content && similarity(last.content, trimmed) > 0.9) return true;
-
-    // Too fast
+    if (similarity(last.content, trimmed) > 0.9) return true;
     if (timestamp - last.timestamp < 1000) return true;
   }
 
-  // Update tracker
   userLastMessages.set(username, { content: trimmed, timestamp });
   return false;
 }
@@ -133,6 +130,7 @@ async function pollKickMessages() {
       const timestamp = new Date(msg.created_at).getTime();
 
       if (!username || !content) continue;
+      if (IGNORED_USERS.includes(username)) continue;
       if (isSpamMessage(username, content, timestamp)) continue;
 
       await Message.findOneAndUpdate(
