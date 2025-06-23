@@ -1,7 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import fetch from "node-fetch";
-import cron from 'node-cron';
+import cron from "node-cron";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,8 +20,8 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model("Message", messageSchema);
 
-// Track cursor for polling
-let lastCursor = null;
+// Track last processed message ID
+let lastMessageId = null;
 
 // Emote-only filter
 function isValidMessage(content) {
@@ -48,26 +48,28 @@ app.get("/leaderboard", async (req, res) => {
 // Poll & process new messages
 async function pollKickMessages() {
   try {
-    const url = new URL(`https://kick.com/api/v2/channels/${CHANNEL_ID}/messages`);
-    if (lastCursor) url.searchParams.set("cursor", lastCursor);
-
-    const response = await fetch(url.toString(), {
+    const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages?t=${Date.now()}`;
+    const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" }
     });
     if (!response.ok) {
       console.error("Fetch failed", await response.text());
       return;
     }
-
     const json = await response.json();
-    const { cursor, messages } = json.data;
-    lastCursor = cursor;
+    const messages = json.data?.messages || [];
+
+    // Sort oldest→newest
+    messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     for (const msg of messages) {
+      if (lastMessageId && msg.id <= lastMessageId) continue;
+      // update lastMessageId
+      lastMessageId = msg.id;
+      // filter emotes
       if (!isValidMessage(msg.content)) continue;
       const username = msg.sender?.username;
       if (!username) continue;
-
       await Message.findOneAndUpdate(
         { username },
         { $inc: { messageCount: 1 } },
@@ -79,14 +81,33 @@ async function pollKickMessages() {
   }
 }
 
-// Start polling every second
-setInterval(pollKickMessages, 1000);
+// Bootstrap lastMessageId without counting old messages, then start polling
+(async () => {
+  try {
+    const initRes = await fetch(
+      `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages?t=${Date.now()}`,
+      { headers: { "User-Agent": "Mozilla/5.0" } }
+    );
+    const initJson = await initRes.json();
+    const initMsgs = initJson.data?.messages || [];
+    if (initMsgs.length) {
+      // Set lastMessageId to the newest message ID
+      initMsgs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      lastMessageId = initMsgs[initMsgs.length - 1].id;
+    }
+  } catch (err) {
+    console.error("Error during bootstrap poll:", err);
+  }
 
-// Reset every 7 days at midnight
+  // Poll every second
+  setInterval(pollKickMessages, 1000);
+})();
+
+// Reset leaderboard every 7 days at midnight
 cron.schedule("0 0 */7 * *", async () => {
   try {
     await Message.deleteMany({});
-    lastCursor = null;
+    lastMessageId = null;
     console.log("Leaderboard reset after 7 days");
   } catch (err) {
     console.error("Error resetting leaderboard:", err);
