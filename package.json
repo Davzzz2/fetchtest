@@ -2,15 +2,14 @@
   "name": "kick-webhook-listener",
   "version": "1.0.0",
   "description": "Kick chat webhook listener with live message display",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "mongoose": "^7.6.1",
-    "ws": "^8.16.0",
-    "node-fetch": "^3.3.2"
-  },
-  "type": "module"
+    "node-fetch": "^3.3.1",
+    "node-cron": "^3.0.2"
+  }
 }
