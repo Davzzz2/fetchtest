@@ -1,15 +1,14 @@
 import express from "express";
 import mongoose from "mongoose";
 import fetch from "node-fetch";
-import WebSocket from "ws";
-import cron from 'node-cron';
+import cron from "node-cron";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CHANNEL_ID = "1485854";
 
 // MongoDB setup
-mongoose.connect(
+await mongoose.connect(
   'mongodb+srv://davekekv:C4kxK3SFZkLA2CZe@cluster0.wkodygj.mongodb.net/leaderboardDB?retryWrites=true&w=majority',
   { useNewUrlParser: true, useUnifiedTopology: true }
 );
@@ -20,7 +19,7 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model("Message", messageSchema);
 
-// Keep track of last processed message ID
+// Track last processed message ID
 let lastMessageId = null;
 
 // Helper: reject messages that are exactly an emote tag
@@ -37,7 +36,7 @@ function isValidMessage(content) {
 app.get("/messages", async (req, res) => {
   try {
     const timestamp = req.query.t || Date.now();
-    const url = https://kick.com/api/v2/channels/${CHANNEL_ID}/messages?t=${timestamp};
+    const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages?t=${timestamp}`;
     const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; FetchTest/1.0)" }
     });
@@ -55,7 +54,7 @@ app.get("/messages", async (req, res) => {
 // Fetch channel info (unchanged)
 app.get("/channel-status", async (req, res) => {
   try {
-    const url = https://kick.com/api/v2/channels/${CHANNEL_ID};
+    const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}`;
     const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; FetchTest/1.0)" }
     });
@@ -92,7 +91,7 @@ app.get("/leaderboard", async (req, res) => {
 // Poll Kick messages and update MongoDB, with emote-only filtering
 async function pollKickMessages() {
   try {
-    const url = https://kick.com/api/v2/channels/${CHANNEL_ID}/messages;
+    const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages`;
     const response = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; FetchTest/1.0)" }
     });
@@ -102,18 +101,27 @@ async function pollKickMessages() {
     }
     const json = await response.json();
     const messages = json.data?.messages || [];
+
+    // Sort oldest→newest so lastMessageId advances chronologically
+    messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
     for (const msg of messages) {
       if (lastMessageId && msg.id <= lastMessageId) continue;
+      // Initialize or advance lastMessageId
       lastMessageId = lastMessageId || msg.id;
-      // Only count valid messages
+
+      // Filter out emote-only messages
       if (!isValidMessage(msg.content)) continue;
-      const username = msg.user?.username || msg.user_id.toString();
+
+      // Extract username
+      const username = msg.sender?.username || msg.user_id.toString();
       await Message.findOneAndUpdate(
         { username },
         { $inc: { messageCount: 1 } },
         { upsert: true }
       );
-      // advance lastMessageId
+
+      // Finally advance ID to this message
       if (msg.id > lastMessageId) lastMessageId = msg.id;
     }
   } catch (err) {
@@ -139,5 +147,5 @@ cron.schedule('0 0 */7 * *', async () => {
 app.use(express.static("public"));
 
 app.listen(PORT, () => {
-  console.log(Server running on port ${PORT});
+  console.log(`Server running on port ${PORT}`);
 });
