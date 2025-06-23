@@ -20,17 +20,56 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model("Message", messageSchema);
 
-// Track the timestamp of the last processed message
-let lastSeenTime = null;
+// Track last seen message ID
+let lastSeenMessageId = null;
 
-// Filter out pure emotes
-function isValidMessage(content) {
-  if (!content) return false;
-  const t = content.trim();
-  return t && !/^\[emote:\d+:[^\]]+\]$/.test(t);
+// Track user message history for spam detection
+const userLastMessages = new Map();
+
+function isSpamMessage(username, content, timestamp) {
+  const trimmed = content.trim();
+  if (!trimmed) return true;
+
+  // Filter pure emote messages
+  if (/^\[emote:\d+:[^\]]+\]$/.test(trimmed)) return true;
+
+  // Filter very short messages
+  if (trimmed.length <= 2) return true;
+
+  // Filter excessive CAPS (80%+ caps, min 6 chars)
+  const letters = trimmed.replace(/[^A-Za-z]/g, '');
+  if (letters.length >= 6) {
+    const capsCount = (letters.match(/[A-Z]/g) || []).length;
+    if (capsCount / letters.length > 0.8) return true;
+  }
+
+  // Check against user's last message
+  const last = userLastMessages.get(username);
+  if (last) {
+    // Repeated message
+    if (last.content === trimmed) return true;
+
+    // Very similar message (copy-paste variant)
+    if (last.content && similarity(last.content, trimmed) > 0.9) return true;
+
+    // Too fast
+    if (timestamp - last.timestamp < 1000) return true;
+  }
+
+  // Update tracker
+  userLastMessages.set(username, { content: trimmed, timestamp });
+  return false;
 }
 
-// Leaderboard endpoint
+// Simple similarity: Jaccard index on word sets
+function similarity(a, b) {
+  const setA = new Set(a.toLowerCase().split(/\s+/));
+  const setB = new Set(b.toLowerCase().split(/\s+/));
+  const intersection = new Set([...setA].filter(x => setB.has(x)));
+  return intersection.size / Math.max(setA.size, setB.size);
+}
+
+// Serve leaderboard
 app.get("/leaderboard", async (req, res) => {
   const docs = await Message.find()
     .sort({ messageCount: -1 })
@@ -39,54 +78,62 @@ app.get("/leaderboard", async (req, res) => {
   res.json(docs.map(d => ({ username: d.username, messageCount: d.messageCount })));
 });
 
-// Live status endpoint
+// Serve live status
 app.get("/live-status", async (req, res) => {
   try {
-    const response = await fetch(`https://kick.com/api/v1/channels/roshtein`);
-    if (!response.ok) {
-      return res.status(response.status).json({ error: "Failed to fetch live status" });
-    }
-    const data = await response.json();
-    const isLive = data.livestream && data.livestream.is_live;
-    res.json({ isLive });
-  } catch (error) {
-    console.error("Error fetching live status:", error);
-    res.status(500).json({ error: error.message });
+    const live = await isStreamerLive();
+    res.json({ isLive: live });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
+
+// Helper to check live status
+async function isStreamerLive() {
+  try {
+    const response = await fetch(`https://kick.com/api/v1/channels/enjayy`);
+    if (!response.ok) return false;
+    const data = await response.json();
+    return data.livestream && data.livestream.is_live;
+  } catch (e) {
+    console.error("Live check failed:", e.message);
+    return false;
+  }
+}
 
 // Polling loop
 async function pollKickMessages() {
   try {
+    const live = await isStreamerLive();
+    if (!live) {
+      console.log("Streamer is offline — skipping message polling.");
+      return;
+    }
+
     const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages`;
     const resp = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0" }
     });
+
     if (!resp.ok) {
       console.error("Fetch failed", await resp.text());
       return;
     }
 
     const json = await resp.json();
-    const messages = (json.data?.messages || [])
-      .map(m => ({
-        ...m,
-        time: new Date(m.created_at)
-      }))
-      .sort((a, b) => a.time - b.time);
+    const messages = (json.data?.messages || []).sort((a, b) =>
+      new Date(a.created_at) - new Date(b.created_at)
+    );
 
     for (const msg of messages) {
-      // Skip anything at or before lastSeenTime
-      if (lastSeenTime && msg.time <= lastSeenTime) continue;
-
-      // Update lastSeenTime immediately
-      lastSeenTime = msg.time;
-
-      // Filter and count
-      if (!isValidMessage(msg.content)) continue;
+      if (lastSeenMessageId === msg.id) break;
 
       const username = msg.sender?.username;
-      if (!username) continue;
+      const content = msg.content;
+      const timestamp = new Date(msg.created_at).getTime();
+
+      if (!username || !content) continue;
+      if (isSpamMessage(username, content, timestamp)) continue;
 
       await Message.findOneAndUpdate(
         { username },
@@ -94,12 +141,17 @@ async function pollKickMessages() {
         { upsert: true }
       );
     }
+
+    if (messages.length) {
+      lastSeenMessageId = messages[messages.length - 1].id;
+    }
+
   } catch (e) {
-    console.error("Error in pollKickMessages:", e);
+    console.error("Error in pollKickMessages:", e.message);
   }
 }
 
-// Bootstrap lastSeenTime without counting old messages
+// Bootstrap lastSeenMessageId
 (async () => {
   try {
     const resp = await fetch(
@@ -109,10 +161,7 @@ async function pollKickMessages() {
     const json = await resp.json();
     const msgs = json.data?.messages || [];
     if (msgs.length) {
-      // Find latest created_at
-      lastSeenTime = msgs
-        .map(m => new Date(m.created_at))
-        .reduce((max, cur) => (cur > max ? cur : max), new Date(0));
+      lastSeenMessageId = msgs[msgs.length - 1].id;
     }
   } catch (_) {}
   setInterval(pollKickMessages, 1000);
@@ -121,7 +170,8 @@ async function pollKickMessages() {
 // Weekly reset
 cron.schedule("0 0 */7 * *", async () => {
   await Message.deleteMany({});
-  lastSeenTime = null;
+  lastSeenMessageId = null;
+  userLastMessages.clear();
   console.log("Leaderboard reset after 7 days");
 });
 
