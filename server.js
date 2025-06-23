@@ -1,115 +1,143 @@
-// server.js
 import express from "express";
 import mongoose from "mongoose";
-import cron from "node-cron";
-import puppeteer from "puppeteer";
+import fetch from "node-fetch";
+import WebSocket from "ws";
+import cron from 'node-cron';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const CHANNEL_SLUG = "1485854";  // numeric or slug
-const KICK_CHANNEL_URL = `https://kick.com/${CHANNEL_SLUG}`;
+const CHANNEL_ID = "1485854";
 
 // MongoDB setup
-await mongoose.connect(
-  "mongodb+srv://davekekv:C4kxK3SFZkLA2CZe@cluster0.wkodygj.mongodb.net/leaderboardDB?retryWrites=true&w=majority",
+mongoose.connect(
+  'mongodb+srv://davekekv:C4kxK3SFZkLA2CZe@cluster0.wkodygj.mongodb.net/leaderboardDB?retryWrites=true&w=majority',
   { useNewUrlParser: true, useUnifiedTopology: true }
 );
 
-// Mongoose model
 const messageSchema = new mongoose.Schema({
   username: { type: String, unique: true },
   messageCount: { type: Number, default: 0 }
 });
 const Message = mongoose.model("Message", messageSchema);
 
-// Filter out pure emotes
-function isValidMessage(text) {
-  if (!text) return false;
-  const t = text.trim();
-  return t.length > 0 && !/^\[emote:\d+:[^\]]+\]$/.test(t);
+// Keep track of last processed message ID
+let lastMessageId = null;
+
+// Helper: reject messages that are exactly an emote tag
+function isValidMessage(content) {
+  if (!content) return false;
+  const trimmed = content.trim();
+  if (!trimmed) return false;
+  // e.g. [emote:3154482:enjayygreenapple]
+  const emoteOnlyRegex = /^\[emote:\d+:[a-zA-Z0-9_]+\]$/;
+  return !emoteOnlyRegex.test(trimmed);
 }
 
-// Leaderboard endpoint unchanged
-app.get("/leaderboard", async (req, res) => {
-  const docs = await Message.find().sort({ messageCount: -1 }).limit(100).lean();
-  res.json(docs.map(d => ({ username: d.username, messageCount: d.messageCount })));
-});
-
-// Expose a function Puppeteer can call whenever a new chat line appears
-app.use(express.json());
-app.post("/_puppeteer/message", async (req, res) => {
-  const { username, content } = req.body;
-  if (!username || !isValidMessage(content)) return res.sendStatus(204);
-  await Message.findOneAndUpdate(
-    { username },
-    { $inc: { messageCount: 1 } },
-    { upsert: true }
-  );
-  console.log(`Counted message for ${username}: "${content}"`);
-  res.sendStatus(200);
-});
-
-// Serve static frontend
-app.use(express.static("public"));
-
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-  startPuppeteer();
-  // 7-day reset
-  cron.schedule("0 0 */7 * *", async () => {
-    await Message.deleteMany({});
-    console.log("Leaderboard reset after 7 days");
-  });
-});
-
-
-// Headless browser logic
-async function startPuppeteer() {
-  const browser = await puppeteer.launch({
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    headless: true
-  });
-  const page = await browser.newPage();
-  await page.goto(KICK_CHANNEL_URL, { waitUntil: "networkidle2" });
-  console.log("Joined Kick channel page in headless browser");
-
-  // Expose a function into the page context so we can POST back to our server
-  await page.exposeFunction("notifyServer", async (username, content) => {
-    try {
-      await fetch(`http://localhost:${PORT}/_puppeteer/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, content })
-      });
-    } catch (e) {
-      console.error("Failed to notify server:", e);
+// Fetch messages route (unchanged)
+app.get("/messages", async (req, res) => {
+  try {
+    const timestamp = req.query.t || Date.now();
+    const url = https://kick.com/api/v2/channels/${CHANNEL_ID}/messages?t=${timestamp};
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; FetchTest/1.0)" }
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).json({ error: errText });
     }
-  });
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-  // In-page script: observe chat DOM for new messages
-  await page.evaluate(() => {
-    const chatContainer = document.querySelector(".chat-list");
-    if (!chatContainer) {
-      console.error("Chat container not found!");
+// Fetch channel info (unchanged)
+app.get("/channel-status", async (req, res) => {
+  try {
+    const url = https://kick.com/api/v2/channels/${CHANNEL_ID};
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; FetchTest/1.0)" }
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      return res.status(response.status).json({ error: errText });
+    }
+    const data = await response.json();
+    res.json({
+      is_live: data.data?.is_live || false,
+      channel_name: data.data?.name || "Unknown",
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Leaderboard endpoint for your frontend
+app.get("/leaderboard", async (req, res) => {
+  try {
+    const docs = await Message.find()
+      .sort({ messageCount: -1 })
+      .limit(100)
+      .lean();
+    res.json(docs.map(d => ({
+      username: d.username,
+      messageCount: d.messageCount
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Poll Kick messages and update MongoDB, with emote-only filtering
+async function pollKickMessages() {
+  try {
+    const url = https://kick.com/api/v2/channels/${CHANNEL_ID}/messages;
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; FetchTest/1.0)" }
+    });
+    if (!response.ok) {
+      console.error("Fetch failed", await response.text());
       return;
     }
-    const obs = new MutationObserver(muts => {
-      for (const m of muts) {
-        for (const node of m.addedNodes) {
-          if (node.nodeType !== Node.ELEMENT_NODE) continue;
-          const line = node.querySelector(".chat-line");
-          if (!line) continue;
-          // Extract username & content from DOM
-          const username = line.querySelector(".chat-username")?.textContent;
-          const content = line.querySelector(".chat-content")?.textContent;
-          if (username && content) {
-            window.notifyServer(username.trim(), content.trim());
-          }
-        }
-      }
-    });
-    obs.observe(chatContainer, { childList: true, subtree: true });
-    console.log("Watching for new chat messages in page...");
-  });
+    const json = await response.json();
+    const messages = json.data?.messages || [];
+    for (const msg of messages) {
+      if (lastMessageId && msg.id <= lastMessageId) continue;
+      lastMessageId = lastMessageId || msg.id;
+      // Only count valid messages
+      if (!isValidMessage(msg.content)) continue;
+      const username = msg.user?.username || msg.user_id.toString();
+      await Message.findOneAndUpdate(
+        { username },
+        { $inc: { messageCount: 1 } },
+        { upsert: true }
+      );
+      // advance lastMessageId
+      if (msg.id > lastMessageId) lastMessageId = msg.id;
+    }
+  } catch (err) {
+    console.error("Error polling messages:", err);
+  }
 }
+
+// Poll every second
+setInterval(pollKickMessages, 1000);
+
+// Reset leaderboard every 7 days at midnight
+cron.schedule('0 0 */7 * *', async () => {
+  try {
+    await Message.deleteMany({});
+    lastMessageId = null;
+    console.log("Leaderboard reset after 7 days");
+  } catch (err) {
+    console.error("Error resetting leaderboard:", err);
+  }
+});
+
+// Serve your static frontend
+app.use(express.static("public"));
+
+app.listen(PORT, () => {
+  console.log(Server running on port ${PORT});
+});
