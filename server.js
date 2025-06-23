@@ -20,7 +20,7 @@ const messageSchema = new mongoose.Schema({
 });
 const Message = mongoose.model("Message", messageSchema);
 
-// Track the last seen message's timestamp (ISO string) and ID
+// Track the last seen message's timestamp and ID
 let lastSeenTimestamp = null;
 let lastSeenId = null;
 
@@ -29,7 +29,6 @@ function isValidMessage(content) {
   if (!content) return false;
   const trimmed = content.trim();
   if (!trimmed) return false;
-  // Exclude if exactly "[emote:123:slug]"
   return !/^\[emote:\d+:[a-zA-Z0-9_]+\]$/.test(trimmed);
 }
 
@@ -46,13 +45,13 @@ app.get("/leaderboard", async (req, res) => {
   }
 });
 
-// Polling function
+// Polling function with debug logs
 async function pollKickMessages() {
   try {
-    // Fetch messages since a far-past timestamp; we'll filter in code
+    console.log(`Fetching messages from Kick at ${new Date().toISOString()}`);
     const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages?t=${Date.now()}`;
     const response = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; FetchTest/1.0)" }
+      headers: { "User-Agent": "Mozilla/5.0" }
     });
     if (!response.ok) {
       console.error("Fetch failed", await response.text());
@@ -61,42 +60,53 @@ async function pollKickMessages() {
 
     const json = await response.json();
     const messages = json.data?.messages || [];
+    console.log(`Fetched ${messages.length} messages`);
 
-    // Sort by created_at ascending
+    // Sort oldest→newest
     messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     for (const msg of messages) {
-      const { created_at: createdAt, id, content, sender } = msg;
-
-      // Skip messages older than last seen timestamp/id
+      console.log(`  → msg id=${msg.id} at ${msg.created_at}`);
+      // Skip if already seen
       if (lastSeenTimestamp) {
-        const cmpTime = new Date(createdAt) < new Date(lastSeenTimestamp);
-        const sameTimeAndId = createdAt === lastSeenTimestamp && id <= lastSeenId;
-        if (cmpTime || sameTimeAndId) continue;
+        const older = new Date(msg.created_at) < new Date(lastSeenTimestamp);
+        const sameAndOld = msg.created_at === lastSeenTimestamp && msg.id <= lastSeenId;
+        if (older || sameAndOld) {
+          console.log("    skipping (already seen)");
+          continue;
+        }
       }
 
-      // Update last seen markers
-      lastSeenTimestamp = createdAt;
-      lastSeenId = id;
+      // Update last seen
+      lastSeenTimestamp = msg.created_at;
+      lastSeenId = msg.id;
+      console.log(`    new message, evaluating...`);
 
-      // Filter out emotes
-      if (!isValidMessage(content)) continue;
+      // Filter emotes
+      if (!isValidMessage(msg.content)) {
+        console.log("    filtered out (emote-only or empty)");
+        continue;
+      }
 
-      const username = sender?.username || sender?.slug;
-      if (!username) continue;
+      const username = msg.sender?.username;
+      if (!username) {
+        console.log("    no sender username, skipping");
+        continue;
+      }
 
       await Message.findOneAndUpdate(
         { username },
         { $inc: { messageCount: 1 } },
         { upsert: true }
       );
+      console.log(`    incremented count for ${username}`);
     }
   } catch (err) {
     console.error("Error polling messages:", err);
   }
 }
 
-// Bootstrap lastSeenTimestamp/ID without counting old messages
+// Bootstrap without counting old messages, then start polling
 (async () => {
   try {
     const initRes = await fetch(
@@ -111,6 +121,7 @@ async function pollKickMessages() {
       const latest = sorted[sorted.length - 1];
       lastSeenTimestamp = latest.created_at;
       lastSeenId = latest.id;
+      console.log(`Bootstrapped lastSeen to id=${latest.id} at ${latest.created_at}`);
     }
   } catch (err) {
     console.error("Error during initial bootstrap:", err);
@@ -135,6 +146,4 @@ cron.schedule("0 0 */7 * *", async () => {
 // Serve static frontend
 app.use(express.static("public"));
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
