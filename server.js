@@ -39,6 +39,22 @@ app.get("/leaderboard", async (req, res) => {
   res.json(docs.map(d => ({ username: d.username, messageCount: d.messageCount })));
 });
 
+// Live status endpoint
+app.get("/live-status", async (req, res) => {
+  try {
+    const response = await fetch(`https://kick.com/api/v1/channels/enjayy`);
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "Failed to fetch live status" });
+    }
+    const data = await response.json();
+    const isLive = data.livestream && data.livestream.is_live;
+    res.json({ isLive });
+  } catch (error) {
+    console.error("Error fetching live status:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Polling loop
 async function pollKickMessages() {
   try {
@@ -111,4 +127,5 @@ cron.schedule("0 0 */7 * *", async () => {
 
 // Serve frontend
 app.use(express.static("public"));
+
 app.listen(PORT, () => console.log(`Server on port ${PORT}`));
