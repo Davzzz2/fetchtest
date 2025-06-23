@@ -9,10 +9,10 @@ const PORT = process.env.PORT || 3000;
 const CHANNEL_ID = "1485854";
 
 // MongoDB setup
-mongoose.connect('mongodb+srv://davekekv:C4kxK3SFZkLA2CZe@cluster0.wkodygj.mongodb.net/leaderboardDB?retryWrites=true&w=majority', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-});
+mongoose.connect(
+  'mongodb+srv://davekekv:C4kxK3SFZkLA2CZe@cluster0.wkodygj.mongodb.net/leaderboardDB?retryWrites=true&w=majority',
+  { useNewUrlParser: true, useUnifiedTopology: true }
+);
 
 const messageSchema = new mongoose.Schema({
   username: { type: String, unique: true },
@@ -23,7 +23,17 @@ const Message = mongoose.model("Message", messageSchema);
 // Keep track of last processed message ID
 let lastMessageId = null;
 
-// Fetch messages route (unchanged for frontend use)
+// Helper: reject messages that are exactly an emote tag
+function isValidMessage(content) {
+  if (!content) return false;
+  const trimmed = content.trim();
+  if (!trimmed) return false;
+  // e.g. [emote:3154482:enjayygreenapple]
+  const emoteOnlyRegex = /^\[emote:\d+:[a-zA-Z0-9_]+\]$/;
+  return !emoteOnlyRegex.test(trimmed);
+}
+
+// Fetch messages route (unchanged)
 app.get("/messages", async (req, res) => {
   try {
     const timestamp = req.query.t || Date.now();
@@ -42,7 +52,7 @@ app.get("/messages", async (req, res) => {
   }
 });
 
-// Fetch channel info
+// Fetch channel info (unchanged)
 app.get("/channel-status", async (req, res) => {
   try {
     const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}`;
@@ -63,16 +73,23 @@ app.get("/channel-status", async (req, res) => {
   }
 });
 
-// New: Serve leaderboard data
+// Leaderboard endpoint for your frontend
 app.get("/leaderboard", async (req, res) => {
-  const data = await Message.find().sort({ messageCount: -1 }).limit(100);
-  res.json(data.map(entry => ({
-    username: entry.username,
-    messageCount: entry.messageCount
-  })));
+  try {
+    const docs = await Message.find()
+      .sort({ messageCount: -1 })
+      .limit(100)
+      .lean();
+    res.json(docs.map(d => ({
+      username: d.username,
+      messageCount: d.messageCount
+    })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Poll Kick messages + update MongoDB
+// Poll Kick messages and update MongoDB, with emote-only filtering
 async function pollKickMessages() {
   try {
     const url = `https://kick.com/api/v2/channels/${CHANNEL_ID}/messages`;
@@ -83,33 +100,31 @@ async function pollKickMessages() {
       console.error("Fetch failed", await response.text());
       return;
     }
-    const data = await response.json();
-    if (!Array.isArray(data)) return;
-
-    for (const msg of data) {
+    const json = await response.json();
+    const messages = json.data?.messages || [];
+    for (const msg of messages) {
       if (lastMessageId && msg.id <= lastMessageId) continue;
-
-      const username = msg.sender.username;
-
+      lastMessageId = lastMessageId || msg.id;
+      // Only count valid messages
+      if (!isValidMessage(msg.content)) continue;
+      const username = msg.user?.username || msg.user_id.toString();
       await Message.findOneAndUpdate(
         { username },
         { $inc: { messageCount: 1 } },
         { upsert: true }
       );
-
-      if (!lastMessageId || msg.id > lastMessageId) {
-        lastMessageId = msg.id;
-      }
+      // advance lastMessageId
+      if (msg.id > lastMessageId) lastMessageId = msg.id;
     }
   } catch (err) {
     console.error("Error polling messages:", err);
   }
 }
 
-// Poll every 1 second
+// Poll every second
 setInterval(pollKickMessages, 1000);
 
-// Reset leaderboard every 7 days (cron: every 7th day at midnight)
+// Reset leaderboard every 7 days at midnight
 cron.schedule('0 0 */7 * *', async () => {
   try {
     await Message.deleteMany({});
@@ -120,7 +135,7 @@ cron.schedule('0 0 */7 * *', async () => {
   }
 });
 
-// Serve static frontend
+// Serve your static frontend
 app.use(express.static("public"));
 
 app.listen(PORT, () => {
