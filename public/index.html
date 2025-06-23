@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Kick Chat Messages</title>
- <style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kick Leaderboard</title>
+  <style>
     * {
       margin: 0;
       padding: 0;
@@ -285,91 +286,109 @@
         min-width: 50px;
         font-size: 0.8rem;
       }
-    
-    #live-status {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: #222;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 14px;
-      z-index: 1000;
-    }
-    #messages {
-      list-style: none;
-      padding: 0;
-    }
-    #messages li {
-      padding: 8px;
-      border-bottom: 1px solid #ccc;
-    }
-    #messages li strong {
-      color: #0077cc;
     }
   </style>
 </head>
 <body>
-  <div id="live-status">Loading status...</div>
-  <h1>Kick Chat Messages (public)</h1>
-  <ul id="messages"></ul>
+  <div class="container">
+    <h1><img src="trophy.png" alt="Trophy" class="trophy-icon">Kick Chat Leaderboard</h1>
+    
+    <div class="leaderboard-card">
+      <table id="leaderboard">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Username</th>
+            <th>Messages</th>
+            <th>Prize</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="4" class="loading">
+              <div class="spinner"></div>
+              Loading leaderboard...
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
   <script>
-    async function fetchMessages() {
-      try {
-        const res = await fetch("/messages");
-        if (!res.ok) throw new Error("Failed to fetch messages");
-        const json = await res.json();
-
-        const messagesList = document.getElementById("messages");
-        messagesList.innerHTML = "";
-
-        const messages = json.data?.messages || [];
-
-        if (messages.length === 0) {
-          messagesList.textContent = "No messages available.";
-          return;
+    let lastLeaderboard = [];
+    function isSameLeaderboard(a, b) {
+      if (a.length !== b.length) return false;
+      for (let i = 0; i < a.length; i++) {
+        if (a[i].username !== b[i].username || a[i].messageCount !== b[i].messageCount) {
+          return false;
         }
+      }
+      return true;
+    }
 
-        messages.forEach(msg => {
-          const li = document.createElement("li");
-          const time = new Date(msg.created_at || Date.now()).toLocaleTimeString();
-          li.innerHTML = `<strong>User ID ${msg.user_id}</strong> [${time}]: ${msg.content || ""}`;
-          messagesList.appendChild(li);
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch("/leaderboard");
+        const data = await res.json();
+        if (isSameLeaderboard(data, lastLeaderboard)) return; // No change, do nothing
+        lastLeaderboard = data;
+        const tbody = document.querySelector("#leaderboard tbody");
+        // Only animate if this is the first load, otherwise just update
+        const isFirstLoad = tbody.children.length === 1 && tbody.children[0].querySelector('.loading');
+        tbody.innerHTML = "";
+
+        // Prize distribution for top 5 ranks (total $20)
+        const prizes = [8, 5, 3.5, 2, 1.5];
+        data.forEach((entry, index) => {
+          const row = document.createElement("tr");
+          if (isFirstLoad) {
+            row.style.animation = `fadeInRow 0.6s ${index * 0.08}s both`;
+          }
+          const prize = index < prizes.length ? `$${prizes[index].toFixed(2)}` : '';
+          const rankClass = index < 3 ? `rank-${index + 1}` : '';
+          const prizeClass = index < 5 ? `prize-${index + 1}` : '';
+          
+          row.innerHTML = `
+            <td class="rank ${rankClass}">${index + 1}</td>
+            <td class="username">${entry.username}</td>
+            <td class="message-count">${entry.messageCount.toLocaleString()}</td>
+            <td class="prize ${prizeClass}">${prize}</td>
+          `;
+          tbody.appendChild(row);
         });
-      } catch (e) {
-        console.error(e);
-        document.getElementById("messages").textContent = "Error loading messages.";
+      } catch (error) {
+        console.error("Failed to load leaderboard:", error);
+        const tbody = document.querySelector("#leaderboard tbody");
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="loading">
+              <div class="spinner"></div>
+              Error loading leaderboard. Retrying...
+            </td>
+          </tr>
+        `;
       }
     }
 
-    async function fetchLiveStatus() {
-      try {
-        const res = await fetch("/channel-status");
-        if (!res.ok) throw new Error("Failed to fetch live status");
-        const json = await res.json();
-
-        const liveStatusDiv = document.getElementById("live-status");
-        if (json.is_live) {
-          liveStatusDiv.textContent = `🔴 LIVE — ${json.channel_name}`;
-          liveStatusDiv.style.backgroundColor = "#d32f2f";
-        } else {
-          liveStatusDiv.textContent = `⚪ Offline — ${json.channel_name}`;
-          liveStatusDiv.style.backgroundColor = "#555";
+    // Row fade-in animation
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes fadeInRow {
+        from { 
+          opacity: 0; 
+          transform: translateY(30px) scale(0.95); 
         }
-      } catch (e) {
-        console.error(e);
-        document.getElementById("live-status").textContent = "Status unavailable";
+        to { 
+          opacity: 1; 
+          transform: translateY(0) scale(1); 
+        }
       }
-    }
+    `;
+    document.head.appendChild(style);
 
-    setInterval(fetchMessages, 5000);
-    setInterval(fetchLiveStatus, 10000);
-
-    fetchMessages();
-    fetchLiveStatus();
+    loadLeaderboard();
+    setInterval(loadLeaderboard, 1000);
   </script>
 </body>
 </html>
