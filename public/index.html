@@ -765,51 +765,187 @@
         padding: 6px;
       }
     }
+
+    .top-widgets {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      width: 100%;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .timer-container, .roll-container {
+      position: static;
+      min-width: 220px;
+      margin: 0;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    table {
+      min-width: 480px;
+    }
+    @media (max-width: 900px) {
+      .top-widgets {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      .timer-container, .roll-container {
+        min-width: unset;
+        width: 100%;
+      }
+    }
+    @media (max-width: 768px) {
+      .top-widgets {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .timer-container, .roll-container {
+        width: 100%;
+        min-width: unset;
+        margin: 0 auto;
+      }
+      .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      table {
+        min-width: 420px;
+      }
+    }
+    @media (max-width: 480px) {
+      .top-widgets {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .timer-container, .roll-container {
+        width: 100%;
+        min-width: unset;
+        margin: 0 auto;
+        padding: 6px 4px;
+      }
+      .table-scroll {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      table {
+        min-width: 350px;
+      }
+    }
+    .top-widgets-mobile {
+      display: none;
+    }
+    .timer-desktop, .roll-desktop {
+      display: block;
+    }
+    .timer-mobile, .roll-mobile {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      .top-widgets-mobile {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 16px;
+        width: 100%;
+      }
+      .timer-mobile, .roll-mobile {
+        display: block;
+        position: static;
+        width: 100%;
+        min-width: unset;
+        margin: 0 auto;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+      .timer-desktop, .roll-desktop {
+        display: none;
+      }
+    }
+    /* Keep .timer-container and .roll-container fixed for desktop as before */
+    .timer-desktop {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+    }
+    .roll-desktop {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
-  <!-- Timer in top right corner -->
-  <div class="timer-container">
-    <div class="timer-title">Next Reset</div>
-    <div class="timer-display" id="timer">Loading...</div>
-  </div>
-
-  <!-- Roll system in top left corner -->
-  <div class="roll-container">
-    <div class="roll-title">🎲 Weekly Roll</div>
-    <div class="roll-timer" id="roll-timer">Loading...</div>
-    <div id="roll-winner" style="display: none;">
-      <div class="roll-winner">
-        <div class="roll-winner-title">Latest Winner</div>
-        <div class="roll-winner-name" id="winner-name">-</div>
-        <div class="roll-winner-prize" id="winner-prize">-</div>
+  <div class="container">
+    <h1><img src="trophy.png" alt="Trophy" class="trophy-icon">Kick Chat Leaderboard</h1>
+    <!-- Mobile widgets below h1 -->
+    <div class="top-widgets-mobile">
+      <div class="timer-container timer-mobile">
+        <div class="timer-title">Next Reset</div>
+        <div class="timer-display" id="timer">Loading...</div>
+      </div>
+      <div class="roll-container roll-mobile">
+        <div class="roll-title">🎲 Weekly Roll</div>
+        <div class="roll-timer" id="roll-timer">Loading...</div>
+        <div id="roll-winner" style="display: none;">
+          <div class="roll-winner">
+            <div class="roll-winner-title">Latest Winner</div>
+            <div class="roll-winner-name" id="winner-name">-</div>
+            <div class="roll-winner-prize" id="winner-prize">-</div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+    <!-- Desktop fixed widgets -->
+    <div class="timer-container timer-desktop">
+      <div class="timer-title">Next Reset</div>
+      <div class="timer-display" id="timer-desktop">Loading...</div>
+    </div>
+    <div class="roll-container roll-desktop">
+      <div class="roll-title">🎲 Weekly Roll</div>
+      <div class="roll-timer" id="roll-timer-desktop">Loading...</div>
+      <div id="roll-winner-desktop" style="display: none;">
+        <div class="roll-winner">
+          <div class="roll-winner-title">Latest Winner</div>
+          <div class="roll-winner-name" id="winner-name-desktop">-</div>
+          <div class="roll-winner-prize" id="winner-prize-desktop">-</div>
+        </div>
+      </div>
+    </div>
 
-  <div class="container">
-
-    <h1><img src="trophy.png" alt="Trophy" class="trophy-icon">Kick Chat Leaderboard</h1>
-    
     <div class="leaderboard-card">
-      <table id="leaderboard">
-        <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Username</th>
-            <th>Messages</th>
-            <th>Prize</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="4" class="loading">
-              <div class="spinner"></div>
-              Loading leaderboard...
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table id="leaderboard">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Username</th>
+              <th>Messages</th>
+              <th>Prize</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="4" class="loading">
+                <div class="spinner"></div>
+                Loading leaderboard...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -830,31 +966,32 @@
       try {
         const res = await fetch("/timer");
         const data = await res.json();
-        const timerEl = document.getElementById("timer");
-        
-        if (data.timeLeft <= 0) {
-          timerEl.textContent = "RESETTING...";
-          timerEl.className = "timer-display timer-critical";
-          return;
-        }
-        
-        const days = data.days;
-        const hours = data.hours.toString().padStart(2, '0');
-        const minutes = data.minutes.toString().padStart(2, '0');
-        const seconds = data.seconds.toString().padStart(2, '0');
-        
-        timerEl.textContent = `${days}d ${hours}:${minutes}:${seconds}`;
-        
-        // Add warning colors based on time remaining
-        timerEl.className = "timer-display";
-        if (days === 0 && hours < 1) {
-          timerEl.classList.add("timer-critical");
-        } else if (days === 0 && hours < 6) {
-          timerEl.classList.add("timer-warning");
-        }
+        const timerEls = [
+          document.getElementById("timer"),
+          document.getElementById("timer-desktop")
+        ].filter(Boolean);
+        timerEls.forEach(timerEl => {
+          if (data.timeLeft <= 0) {
+            timerEl.textContent = "RESETTING...";
+            timerEl.className = "timer-display timer-critical";
+            return;
+          }
+          const days = data.days;
+          const hours = data.hours.toString().padStart(2, '0');
+          const minutes = data.minutes.toString().padStart(2, '0');
+          const seconds = data.seconds.toString().padStart(2, '0');
+          timerEl.textContent = `${days}d ${hours}:${minutes}:${seconds}`;
+          timerEl.className = "timer-display";
+          if (days === 0 && data.hours < 1) {
+            timerEl.classList.add("timer-critical");
+          } else if (days === 0 && data.hours < 6) {
+            timerEl.classList.add("timer-warning");
+          }
+        });
       } catch (e) {
-        console.error("Failed to update timer:", e);
-        document.getElementById("timer").textContent = "Error";
+        [document.getElementById("timer"), document.getElementById("timer-desktop")].forEach(timerEl => {
+          if (timerEl) timerEl.textContent = "Error";
+        });
       }
     }
 
@@ -863,40 +1000,46 @@
       try {
         const res = await fetch("/roll-info");
         const data = await res.json();
-        
-        const rollTimerEl = document.getElementById("roll-timer");
-        const rollWinnerEl = document.getElementById("roll-winner");
-        const winnerNameEl = document.getElementById("winner-name");
-        const winnerPrizeEl = document.getElementById("winner-prize");
-        
+        const rollTimerEls = [
+          document.getElementById("roll-timer"),
+          document.getElementById("roll-timer-desktop")
+        ].filter(Boolean);
+        const rollWinnerEls = [
+          document.getElementById("roll-winner"),
+          document.getElementById("roll-winner-desktop")
+        ].filter(Boolean);
+        const winnerNameEls = [
+          document.getElementById("winner-name"),
+          document.getElementById("winner-name-desktop")
+        ].filter(Boolean);
+        const winnerPrizeEls = [
+          document.getElementById("winner-prize"),
+          document.getElementById("winner-prize-desktop")
+        ].filter(Boolean);
         // Update roll timer (same as leaderboard timer)
+        let timerText = "Rolling...";
         if (data.timeUntilRoll > 0) {
           const days = Math.floor(data.timeUntilRoll / (1000 * 60 * 60 * 24));
           const hours = Math.floor((data.timeUntilRoll % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
           const minutes = Math.floor((data.timeUntilRoll % (1000 * 60 * 60)) / (1000 * 60));
           const seconds = Math.floor((data.timeUntilRoll % (1000 * 60)) / 1000);
-          
-          let timerText = `Next Roll: `;
-          if (days > 0) {
-            timerText += `${days}d ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-          } else {
-            timerText += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-          }
-          
-          rollTimerEl.textContent = timerText;
-        } else {
-          rollTimerEl.textContent = "Rolling...";
+          timerText = days > 0
+            ? `Next Roll: ${days}d ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+            : `Next Roll: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
-        
+        rollTimerEls.forEach(el => el.textContent = timerText);
         // Show latest winner if available (stays until next roll)
         if (data.latestRoll) {
-          winnerNameEl.textContent = data.latestRoll.winner;
-          winnerPrizeEl.textContent = `$${data.latestRoll.prize.toFixed(2)}`;
-          rollWinnerEl.style.display = "block";
+          winnerNameEls.forEach(el => el.textContent = data.latestRoll.winner);
+          winnerPrizeEls.forEach(el => el.textContent = `$${data.latestRoll.prize.toFixed(2)}`);
+          rollWinnerEls.forEach(el => el.style.display = "block");
+        } else {
+          rollWinnerEls.forEach(el => el.style.display = "none");
         }
       } catch (e) {
-        console.error("Failed to update roll system:", e);
-        document.getElementById("roll-timer").textContent = "Error";
+        [document.getElementById("roll-timer"), document.getElementById("roll-timer-desktop")].forEach(el => {
+          if (el) el.textContent = "Error";
+        });
       }
     }
 
